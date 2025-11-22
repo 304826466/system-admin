@@ -26,7 +26,7 @@ const permissionRouter = {
       path: "/permission/button",
       meta: {
         title: "按钮权限",
-        roles: ["admin", "common"]
+        roles: ["admin"]
       },
       children: [
         {

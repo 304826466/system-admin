@@ -1,8 +1,5 @@
-<!-- views/demo/table2.vue -->
 <template>
   <div class="demo-container">
-    <p>封装统一表格组件，统一计算高度，并抽离分页组件。</p>
-
     <!-- 操作按钮区域 -->
     <div class="operation-area mb-4">
       <el-button type="primary" :icon="AddIcon" @click="handleAdd">
@@ -38,20 +35,13 @@
       </el-form>
     </div>
 
-    <!-- 自适应表格区域（包含分页） -->
-    <div class="table-area">
-      <ReAdaptiveTable
+    <!-- 表格区域 -->
+    <div class="table-area mb-4">
+      <el-table
         :data="tableData"
-        :loading="loading"
-        :show-pagination="true"
-        :pagination-config="paginationConfig"
-        :container-selector="'.demo-container'"
         border
         stripe
         @selection-change="handleSelectionChange"
-        @pagination:size-change="handleSizeChange"
-        @pagination:current-change="handleCurrentChange"
-        @refresh="handleRefresh"
       >
         <el-table-column type="selection" width="55" />
         <el-table-column prop="id" label="ID" width="80" />
@@ -65,7 +55,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="创建时间" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="200">
           <template #default="{ row }">
             <el-button
               type="primary"
@@ -85,7 +75,20 @@
             </el-button>
           </template>
         </el-table-column>
-      </ReAdaptiveTable>
+      </el-table>
+    </div>
+
+    <!-- 分页插件 -->
+    <div class="pagination-area">
+      <el-pagination
+        v-model:current-page="pagination.currentPage"
+        v-model:page-size="pagination.pageSize"
+        :page-sizes="[10, 20, 50, 100]"
+        :total="pagination.total"
+        layout="total, sizes, prev, pager, next, jumper"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+      />
     </div>
 
     <!-- 抽屉组件 -->
@@ -94,11 +97,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import DemoDrawer from "./components/DemoDrawer.vue";
-import ReAdaptiveTable from "@/components/ReAdaptiveTable/index.vue";
 
 // 图标引入
 const AddIcon = useRenderIcon("ep:plus");
@@ -106,10 +108,6 @@ const EditIcon = useRenderIcon("ep:edit");
 const DeleteIcon = useRenderIcon("ep:delete");
 const SearchIcon = useRenderIcon("ep:search");
 const RefreshIcon = useRenderIcon("ep:refresh");
-
-defineOptions({
-  name: "demotable2"
-});
 
 // 搜索表单数据
 const searchForm = reactive({
@@ -128,44 +126,26 @@ const pagination = reactive({
   total: 0
 });
 
-// 加载状态
-const loading = ref(false);
-
 // 抽屉引用
 const drawerRef = ref();
 
-// 计算分页配置
-const paginationConfig = computed(() => ({
-  currentPage: pagination.currentPage,
-  pageSize: pagination.pageSize,
-  pageSizes: [10, 20, 50, 100],
-  total: pagination.total,
-  layout: "total, sizes, prev, pager, next, jumper",
-  background: true
-}));
-
 // 获取表格数据（模拟）
 const fetchData = () => {
-  loading.value = true;
-  // 模拟异步请求
-  setTimeout(() => {
-    // 模拟数据
-    const mockData = Array.from({ length: 100 }, (_, index) => ({
-      id: index + 1,
-      name: `用户${index + 1}`,
-      email: `user${index + 1}@example.com`,
-      status: index % 2 === 0 ? "enabled" : "disabled",
-      createTime: "2023-05-01 12:00:00"
-    }));
+  // 模拟数据
+  const mockData = Array.from({ length: 30 }, (_, index) => ({
+    id: index + 1,
+    name: `用户${index + 1}`,
+    email: `user${index + 1}@example.com`,
+    status: index % 2 === 0 ? "enabled" : "disabled",
+    createTime: "2023-05-01 12:00:00"
+  }));
 
-    // 模拟分页
-    const start = (pagination.currentPage - 1) * pagination.pageSize;
-    const end = start + pagination.pageSize;
+  // 模拟分页
+  const start = (pagination.currentPage - 1) * pagination.pageSize;
+  const end = start + pagination.pageSize;
 
-    tableData.value = mockData.slice(start, end);
-    pagination.total = mockData.length;
-    loading.value = false;
-  }, 500);
+  tableData.value = mockData.slice(start, end);
+  pagination.total = mockData.length;
 };
 
 // 搜索
@@ -254,11 +234,6 @@ const handleCurrentChange = val => {
   fetchData();
 };
 
-// 刷新数据
-const handleRefresh = () => {
-  fetchData();
-};
-
 // 组件挂载时获取数据
 onMounted(() => {
   fetchData();
@@ -267,34 +242,11 @@ onMounted(() => {
 
 <style scoped>
 .demo-container {
-  box-sizing: border-box;
-
-  /* 减去顶部导航栏和其他固定元素的高度 */
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 130px);
   padding: 20px;
-  overflow: hidden;
   background-color: #fff;
-
-  /* 防止出现外部滚动条 */
 }
 
 .mb-4 {
   margin-bottom: 1rem;
-}
-
-.table-area {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* 确保表格容器正确填充空间 */
-.adaptive-table-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
 }
 </style>

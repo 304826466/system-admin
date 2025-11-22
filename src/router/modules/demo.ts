@@ -9,7 +9,7 @@ export default {
   },
   children: [
     {
-      path: "table",
+      path: "/demo/table",
       name: "DemoTable",
       component: () => import("@/views/demo/table.vue"),
       meta: {
@@ -18,7 +18,7 @@ export default {
       }
     },
     {
-      path: "table2",
+      path: "/demo/table2",
       name: "DemoTable2",
       component: () => import("@/views/demo/table2.vue"),
       meta: {

@@ -109,6 +109,10 @@ const DeleteIcon = useRenderIcon("ep:delete");
 const SearchIcon = useRenderIcon("ep:search");
 const RefreshIcon = useRenderIcon("ep:refresh");
 
+defineOptions({
+  name: "DemoTable"
+});
+
 // 搜索表单数据
 const searchForm = reactive({
   name: "",
