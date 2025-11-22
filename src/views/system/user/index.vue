@@ -1,85 +1,88 @@
-<!-- views/system/role/index.vue -->
+<!-- views/system/user/index.vue -->
 <template>
-  <div class="role-container">
+  <div class="user-container">
+    <p>用户管理页面</p>
+
+    <!-- 操作按钮区域 -->
     <div class="operation-area mb-4">
-      <el-button type="primary" :icon="AddIcon" @click="handleAdd">
-        新增角色
-      </el-button>
+      <el-button type="primary" :icon="AddIcon" @click="handleAdd"> 新增用户 </el-button>
+      <el-button type="danger" :icon="DeleteIcon" @click="handleBatchDelete"> 批量删除 </el-button>
     </div>
 
-    <!-- 角色表格 -->
-    <div class="table-area mb-4">
-      <el-table :data="roleList" border stripe>
+    <!-- 搜索区域 -->
+    <div class="search-area mb-4">
+      <el-form :model="searchForm" label-width="80px" inline>
+        <el-form-item label="用户名">
+          <el-input v-model="searchForm.username" placeholder="请输入用户名" />
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable>
+            <el-option label="启用" value="enabled" />
+            <el-option label="禁用" value="disabled" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" :icon="SearchIcon" @click="handleSearch"> 搜索 </el-button>
+          <el-button :icon="RefreshIcon" @click="handleReset"> 重置 </el-button>
+        </el-form-item>
+      </el-form>
+    </div>
+
+    <!-- 自适应表格区域（包含分页） -->
+    <div class="table-area">
+      <ReAdaptiveTable
+        :data="userList"
+        :loading="loading"
+        :show-pagination="true"
+        :pagination-config="paginationConfig"
+        :container-selector="'.user-container'"
+        border
+        stripe
+        @selection-change="handleSelectionChange"
+        @pagination:size-change="handleSizeChange"
+        @pagination:current-change="handleCurrentChange"
+        @refresh="handleRefresh">
+        <el-table-column type="selection" width="55" />
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="roleName" label="角色名称" />
-        <el-table-column prop="roleCode" label="角色编码" />
-        <el-table-column prop="description" label="描述" />
-        <el-table-column label="权限配置" width="200">
+        <el-table-column prop="username" label="用户名" />
+        <el-table-column prop="email" label="邮箱" />
+        <el-table-column prop="role" label="角色" />
+        <el-table-column prop="status" label="状态">
           <template #default="{ row }">
-            <el-button
-              type="primary"
-              link
-              :icon="SettingIcon"
-              @click="handlePermissionConfig(row)"
-            >
-              配置权限
-            </el-button>
+            <el-tag :type="row.status === 'enabled' ? 'success' : 'danger'">
+              {{ row.status === "enabled" ? "启用" : "禁用" }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200">
+        <el-table-column prop="createTime" label="创建时间" />
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button
-              type="primary"
-              link
-              :icon="EditIcon"
-              @click="handleEdit(row)"
-            >
-              编辑
-            </el-button>
-            <el-button
-              type="danger"
-              link
-              :icon="DeleteIcon"
-              @click="handleDelete(row)"
-            >
-              删除
-            </el-button>
+            <el-button type="primary" link :icon="EditIcon" @click="handleEdit(row)"> 编辑 </el-button>
+            <el-button type="danger" link :icon="DeleteIcon" @click="handleDelete(row)"> 删除 </el-button>
           </template>
         </el-table-column>
-      </el-table>
+      </ReAdaptiveTable>
     </div>
 
-    <!-- 角色编辑弹窗 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="dialogTitle"
-      width="500px"
-      @close="handleDialogClose"
-    >
-      <el-form
-        ref="roleFormRef"
-        :model="currentRole"
-        :rules="roleRules"
-        label-width="100px"
-      >
-        <el-form-item label="角色名称" prop="roleName">
-          <el-input
-            v-model="currentRole.roleName"
-            placeholder="请输入角色名称"
-          />
+    <!-- 用户编辑弹窗 -->
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="500px" @close="handleDialogClose">
+      <el-form ref="userFormRef" :model="currentUser" :rules="userRules" label-width="100px">
+        <el-form-item label="用户名" prop="username">
+          <el-input v-model="currentUser.username" placeholder="请输入用户名" />
         </el-form-item>
-        <el-form-item label="角色编码" prop="roleCode">
-          <el-input
-            v-model="currentRole.roleCode"
-            placeholder="请输入角色编码"
-          />
+        <el-form-item label="邮箱" prop="email">
+          <el-input v-model="currentUser.email" placeholder="请输入邮箱" />
         </el-form-item>
-        <el-form-item label="描述" prop="description">
-          <el-input
-            v-model="currentRole.description"
-            type="textarea"
-            placeholder="请输入描述"
-          />
+        <el-form-item label="角色" prop="role">
+          <el-select v-model="currentUser.role" placeholder="请选择角色" style="width: 100%">
+            <el-option v-for="item in roleList" :key="item.id" :label="item.roleName" :value="item.roleName" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="状态" prop="status">
+          <el-radio-group v-model="currentUser.status">
+            <el-radio label="enabled">启用</el-radio>
+            <el-radio label="disabled">禁用</el-radio>
+          </el-radio-group>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -89,172 +92,183 @@
         </div>
       </template>
     </el-dialog>
-
-    <!-- 权限配置弹窗 -->
-    <el-dialog
-      v-model="permissionDialogVisible"
-      title="权限配置"
-      width="600px"
-      @close="handlePermissionDialogClose"
-    >
-      <div class="permission-tree">
-        <el-alert
-          title="提示：父级菜单权限会自动包含子级权限"
-          type="info"
-          show-icon
-          class="mb-3"
-        />
-        <el-tree
-          ref="permissionTreeRef"
-          :data="routePermissions"
-          show-checkbox
-          node-key="path"
-          :props="defaultProps"
-          :default-checked-keys="selectedPermissions"
-          :default-expanded-keys="expandedKeys"
-          check-strictly
-        />
-      </div>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="permissionDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleSavePermissions"
-            >保存</el-button
-          >
-        </div>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from "vue";
+import { ref, reactive, onMounted, computed, nextTick } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import ReAdaptiveTable from "@/components/ReAdaptiveTable/index.vue";
 import { storageLocal } from "@pureadmin/utils";
-import { ascending } from "@/router/utils";
-import { usePermissionStoreHook } from "@/store/modules/permission";
 
 // 图标引入
 const AddIcon = useRenderIcon("ep:plus");
 const EditIcon = useRenderIcon("ep:edit");
 const DeleteIcon = useRenderIcon("ep:delete");
-const SettingIcon = useRenderIcon("ep:setting");
+const SearchIcon = useRenderIcon("ep:search");
+const RefreshIcon = useRenderIcon("ep:refresh");
 
-// 表单引用
-const roleFormRef = ref();
-const permissionTreeRef = ref();
+defineOptions({
+  name: "systemUser"
+});
+
+// 搜索表单数据
+const searchForm = reactive({
+  username: "",
+  status: ""
+});
+
+// 表格数据
+const userList = ref([]);
+const selectedRows = ref([]);
+const loading = ref(false);
+
+// 分页数据
+const pagination = reactive({
+  currentPage: 1,
+  pageSize: 10,
+  total: 0
+});
+
+// 计算分页配置
+const paginationConfig = computed(() => ({
+  currentPage: pagination.currentPage,
+  pageSize: pagination.pageSize,
+  pageSizes: [10, 20, 50, 100],
+  total: pagination.total,
+  layout: "total, sizes, prev, pager, next, jumper",
+  background: true
+}));
+
+// 弹窗相关
+const dialogVisible = ref(false);
+const isEdit = ref(false);
+const dialogTitle = computed(() => (isEdit.value ? "编辑用户" : "新增用户"));
+
+// 当前用户数据
+const currentUser = reactive({
+  id: "",
+  username: "",
+  email: "",
+  role: "",
+  status: "enabled",
+  createTime: ""
+});
 
 // 角色列表
 const roleList = ref([]);
 
-// 当前编辑的角色
-const currentRole = reactive({
-  id: "",
-  roleName: "",
-  roleCode: "",
-  description: ""
-});
-
-// 弹窗控制
-const dialogVisible = ref(false);
-const permissionDialogVisible = ref(false);
-const isEdit = ref(false);
-
-// 当前配置权限的角色
-const currentPermissionRole = ref(null);
+// 表单引用
+const userFormRef = ref();
 
 // 表单验证规则
-const roleRules = {
-  roleName: [{ required: true, message: "请输入角色名称", trigger: "blur" }],
-  roleCode: [{ required: true, message: "请输入角色编码", trigger: "blur" }]
+const userRules = {
+  username: [{ required: true, message: "请输入用户名", trigger: "blur" }],
+  email: [
+    { required: true, message: "请输入邮箱", trigger: "blur" },
+    { type: "email", message: "请输入正确的邮箱格式", trigger: "blur" }
+  ],
+  role: [{ required: true, message: "请选择角色", trigger: "change" }]
 };
 
-// 弹窗标题
-const dialogTitle = computed(() => {
-  return isEdit.value ? "编辑角色" : "新增角色";
-});
+// 获取用户列表（带分页）
+const getUserList = () => {
+  loading.value = true;
+  try {
+    const users = storageLocal().getItem("system_users") || [];
 
-// 获取路由权限数据
-const getRoutePermissions = () => {
-  // 获取所有路由
-  const permissionStore = usePermissionStoreHook();
-  const routes = permissionStore.wholeMenus;
+    // 模拟搜索过滤
+    let filteredUsers = users;
+    if (searchForm.username) {
+      filteredUsers = filteredUsers.filter(user => user.username.includes(searchForm.username));
+    }
+    if (searchForm.status) {
+      filteredUsers = filteredUsers.filter(user => user.status === searchForm.status);
+    }
 
-  // 构建权限树
-  const buildPermissionTree = (routes, parentPath = "") => {
-    return routes.map(route => {
-      const currentPath = route.path.startsWith("/")
-        ? route.path
-        : `${parentPath}/${route.path}`;
+    // 模拟分页
+    const start = (pagination.currentPage - 1) * pagination.pageSize;
+    const end = start + pagination.pageSize;
 
-      const node = {
-        path: currentPath,
-        label: route.meta?.title || route.name || route.path,
-        children: []
-      };
-
-      if (route.children && route.children.length > 0) {
-        node.children = buildPermissionTree(route.children, currentPath);
-      }
-
-      return node;
-    });
-  };
-
-  return buildPermissionTree(routes);
+    userList.value = filteredUsers.slice(start, end);
+    pagination.total = filteredUsers.length;
+  } catch (error) {
+    userList.value = [];
+    pagination.total = 0;
+    ElMessage.error("获取用户列表失败");
+  } finally {
+    loading.value = false;
+  }
 };
-
-// 路由权限列表
-const routePermissions = ref([]);
-
-// 树形控件属性
-const defaultProps = {
-  children: "children",
-  label: "label"
-};
-
-// 已选中的权限
-const selectedPermissions = ref([]);
-const expandedKeys = ref([]);
 
 // 获取角色列表
 const getRoleList = () => {
-  const roles = storageLocal().getItem("system_roles") || [];
-  roleList.value = roles;
+  try {
+    roleList.value = storageLocal().getItem("system_roles") || [];
+  } catch (error) {
+    roleList.value = [];
+  }
 };
 
-// 新增角色
+// 搜索
+const handleSearch = () => {
+  pagination.currentPage = 1;
+  getUserList();
+};
+
+// 重置搜索
+const handleReset = () => {
+  searchForm.username = "";
+  searchForm.status = "";
+  pagination.currentPage = 1;
+  getUserList();
+};
+
+// 处理选择变化
+const handleSelectionChange = rows => {
+  selectedRows.value = rows;
+};
+
+// 新增用户
 const handleAdd = () => {
   isEdit.value = false;
-  Object.assign(currentRole, {
+  Object.assign(currentUser, {
     id: "",
-    roleName: "",
-    roleCode: "",
-    description: ""
+    username: "",
+    email: "",
+    role: "",
+    status: "enabled",
+    createTime: ""
   });
   dialogVisible.value = true;
+  nextTick(() => {
+    userFormRef.value?.clearValidate();
+  });
 };
 
-// 编辑角色
+// 编辑用户
 const handleEdit = row => {
   isEdit.value = true;
-  Object.assign(currentRole, row);
+  Object.assign(currentUser, row);
   dialogVisible.value = true;
+  nextTick(() => {
+    userFormRef.value?.clearValidate();
+  });
 };
 
-// 删除角色
+// 删除用户
 const handleDelete = row => {
-  ElMessageBox.confirm(`确认删除角色"${row.roleName}"吗？`, "提示", {
+  ElMessageBox.confirm(`确认删除用户"${row.username}"吗？`, "提示", {
     type: "warning"
   })
     .then(() => {
-      const roles = storageLocal().getItem("system_roles") || [];
-      const index = roles.findIndex(item => item.id === row.id);
+      const users = storageLocal().getItem("system_users") || [];
+      const index = users.findIndex(item => item.id === row.id);
       if (index > -1) {
-        roles.splice(index, 1);
-        storageLocal().setItem("system_roles", roles);
-        getRoleList();
+        users.splice(index, 1);
+        storageLocal().setItem("system_users", users);
+        getUserList();
         ElMessage.success("删除成功");
       }
     })
@@ -263,118 +277,123 @@ const handleDelete = row => {
     });
 };
 
-// 保存角色
+// 批量删除
+const handleBatchDelete = () => {
+  if (selectedRows.value.length === 0) {
+    ElMessage.warning("请至少选择一条数据");
+    return;
+  }
+
+  ElMessageBox.confirm(`确认删除选中的 ${selectedRows.value.length} 条用户数据吗？`, "提示", {
+    type: "warning"
+  })
+    .then(() => {
+      const users = storageLocal().getItem("system_users") || [];
+      const selectedIds = selectedRows.value.map(item => item.id);
+      const filteredUsers = users.filter(user => !selectedIds.includes(user.id));
+      storageLocal().setItem("system_users", filteredUsers);
+      getUserList();
+      ElMessage.success("批量删除成功");
+    })
+    .catch(() => {
+      // 用户取消删除
+    });
+};
+
+// 保存用户
 const handleSave = () => {
-  roleFormRef.value.validate(valid => {
+  userFormRef.value.validate(valid => {
     if (valid) {
-      const roles = storageLocal().getItem("system_roles") || [];
+      const users = storageLocal().getItem("system_users") || [];
 
       if (isEdit.value) {
-        // 编辑角色
-        const index = roles.findIndex(item => item.id === currentRole.id);
+        // 编辑用户
+        const index = users.findIndex(item => item.id === currentUser.id);
         if (index > -1) {
-          roles[index] = { ...currentRole };
+          users[index] = { ...currentUser };
         }
         ElMessage.success("编辑成功");
       } else {
-        // 新增角色
-        const newRole = {
-          ...currentRole,
-          id: Date.now().toString()
+        // 新增用户
+        const newUser = {
+          ...currentUser,
+          id: Date.now().toString(),
+          createTime: new Date().toLocaleString()
         };
-        roles.push(newRole);
+        users.push(newUser);
         ElMessage.success("新增成功");
       }
 
-      storageLocal().setItem("system_roles", roles);
+      storageLocal().setItem("system_users", users);
       dialogVisible.value = false;
-      getRoleList();
+      getUserList();
     }
   });
 };
 
 // 弹窗关闭
 const handleDialogClose = () => {
-  roleFormRef.value.resetFields();
+  userFormRef.value?.resetFields();
 };
 
-// 权限配置
-const handlePermissionConfig = row => {
-  currentPermissionRole.value = row;
-
-  // 获取该角色已配置的权限
-  const rolePermissions =
-    storageLocal().getItem(`role_permissions_${row.id}`) || [];
-  selectedPermissions.value = rolePermissions;
-
-  permissionDialogVisible.value = true;
+// 分页大小改变
+const handleSizeChange = val => {
+  pagination.pageSize = val;
+  pagination.currentPage = 1;
+  getUserList();
 };
 
-// 保存权限配置
-const handleSavePermissions = () => {
-  if (!currentPermissionRole.value) return;
-
-  const checkedKeys = permissionTreeRef.value.getCheckedKeys();
-
-  storageLocal().setItem(
-    `role_permissions_${currentPermissionRole.value.id}`,
-    checkedKeys
-  );
-
-  ElMessage.success("权限配置保存成功");
-  permissionDialogVisible.value = false;
+// 当前页改变
+const handleCurrentChange = val => {
+  pagination.currentPage = val;
+  getUserList();
 };
 
-// 权限配置弹窗关闭
-const handlePermissionDialogClose = () => {
-  currentPermissionRole.value = null;
-  selectedPermissions.value = [];
+// 刷新数据
+const handleRefresh = () => {
+  getUserList();
 };
 
 // 组件挂载时获取数据
 onMounted(() => {
+  getUserList();
   getRoleList();
-  routePermissions.value = getRoutePermissions();
 
-  // 展开所有节点
-  const expandAllKeys = [];
-  const collectKeys = nodes => {
-    nodes.forEach(node => {
-      expandAllKeys.push(node.path);
-      if (node.children && node.children.length > 0) {
-        collectKeys(node.children);
-      }
-    });
-  };
-  collectKeys(routePermissions.value);
-  expandedKeys.value = expandAllKeys;
-
-  // 初始化默认角色（如果不存在）
-  const roles = storageLocal().getItem("system_roles") || [];
-  if (roles.length === 0) {
-    const defaultRoles = [
+  // 初始化默认用户（如果不存在）
+  const users = storageLocal().getItem("system_users") || [];
+  if (users.length === 0) {
+    const defaultUsers = [
       {
         id: "1",
-        roleName: "管理员",
-        roleCode: "admin",
-        description: "系统管理员，拥有所有权限"
+        username: "admin",
+        email: "admin@example.com",
+        role: "管理员",
+        status: "enabled",
+        createTime: "2023-05-01 12:00:00"
       },
       {
         id: "2",
-        roleName: "普通用户",
-        roleCode: "user",
-        description: "普通用户，拥有基础权限"
+        username: "user",
+        email: "user@example.com",
+        role: "普通用户",
+        status: "enabled",
+        createTime: "2023-05-01 12:00:00"
       }
     ];
-    storageLocal().setItem("system_roles", defaultRoles);
-    getRoleList();
+    storageLocal().setItem("system_users", defaultUsers);
+    getUserList();
   }
 });
 </script>
 
 <style scoped>
-.role-container {
+.user-container {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 130px);
   padding: 20px;
+  overflow: hidden;
   background-color: #fff;
 }
 
@@ -382,18 +401,22 @@ onMounted(() => {
   margin-bottom: 1rem;
 }
 
-.mb-3 {
-  margin-bottom: 1rem;
+.table-area {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.adaptive-table-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .dialog-footer {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
-}
-
-.permission-tree {
-  max-height: 400px;
-  overflow-y: auto;
 }
 </style>

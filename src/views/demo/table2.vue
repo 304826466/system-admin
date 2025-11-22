@@ -3,16 +3,6 @@
   <div class="demo-container">
     <p>封装统一表格组件，统一计算高度，并抽离分页组件。</p>
 
-    <!-- 操作按钮区域 -->
-    <div class="operation-area mb-4">
-      <el-button type="primary" :icon="AddIcon" @click="handleAdd">
-        新增
-      </el-button>
-      <el-button type="danger" :icon="DeleteIcon" @click="handleBatchDelete">
-        批量删除
-      </el-button>
-    </div>
-
     <!-- 搜索区域 -->
     <div class="search-area mb-4">
       <el-form :model="searchForm" label-width="80px" inline>
@@ -20,19 +10,13 @@
           <el-input v-model="searchForm.name" placeholder="请输入姓名" />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select
-            v-model="searchForm.status"
-            placeholder="请选择状态"
-            clearable
-          >
+          <el-select v-model="searchForm.status" placeholder="请选择状态" style="width: 140px" clearable>
             <el-option label="启用" value="enabled" />
             <el-option label="禁用" value="disabled" />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :icon="SearchIcon" @click="handleSearch">
-            搜索
-          </el-button>
+          <el-button type="primary" :icon="SearchIcon" @click="handleSearch"> 搜索 </el-button>
           <el-button :icon="RefreshIcon" @click="handleReset"> 重置 </el-button>
         </el-form-item>
       </el-form>
@@ -51,8 +35,7 @@
         @selection-change="handleSelectionChange"
         @pagination:size-change="handleSizeChange"
         @pagination:current-change="handleCurrentChange"
-        @refresh="handleRefresh"
-      >
+        @refresh="handleRefresh">
         <el-table-column type="selection" width="55" />
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="name" label="姓名" />
@@ -67,22 +50,8 @@
         <el-table-column prop="createTime" label="创建时间" />
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button
-              type="primary"
-              link
-              :icon="EditIcon"
-              @click="handleEdit(row)"
-            >
-              编辑
-            </el-button>
-            <el-button
-              type="danger"
-              link
-              :icon="DeleteIcon"
-              @click="handleDelete(row)"
-            >
-              删除
-            </el-button>
+            <el-button type="primary" link :icon="EditIcon" @click="handleEdit(row)"> 编辑 </el-button>
+            <el-button type="danger" link :icon="DeleteIcon" @click="handleDelete(row)"> 删除 </el-button>
           </template>
         </el-table-column>
       </ReAdaptiveTable>
@@ -219,13 +188,9 @@ const handleBatchDelete = () => {
     return;
   }
 
-  ElMessageBox.confirm(
-    `确认删除选中的 ${selectedRows.value.length} 条数据吗？`,
-    "提示",
-    {
-      type: "warning"
-    }
-  )
+  ElMessageBox.confirm(`确认删除选中的 ${selectedRows.value.length} 条数据吗？`, "提示", {
+    type: "warning"
+  })
     .then(() => {
       // 实际项目中这里调用批量删除接口
       ElMessage.success("批量删除成功");

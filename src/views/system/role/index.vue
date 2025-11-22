@@ -2,84 +2,68 @@
 <template>
   <div class="role-container">
     <div class="operation-area mb-4">
-      <el-button type="primary" :icon="AddIcon" @click="handleAdd">
-        新增角色
-      </el-button>
+      <el-button type="primary" :icon="AddIcon" @click="handleAdd"> 新增角色 </el-button>
     </div>
 
-    <!-- 角色表格 -->
-    <div class="table-area mb-4">
-      <el-table :data="roleList" border stripe>
+    <!-- 搜索区域 -->
+    <div class="search-area mb-4">
+      <el-form :model="searchForm" label-width="80px" inline>
+        <el-form-item label="角色名称">
+          <el-input v-model="searchForm.roleName" placeholder="请输入角色名称" />
+        </el-form-item>
+        <el-form-item label="角色编码">
+          <el-input v-model="searchForm.roleCode" placeholder="请输入角色编码" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" :icon="SearchIcon" @click="handleSearch"> 搜索 </el-button>
+          <el-button :icon="RefreshIcon" @click="handleReset"> 重置 </el-button>
+        </el-form-item>
+      </el-form>
+    </div>
+
+    <!-- 自适应表格区域（包含分页） -->
+    <div class="table-area">
+      <ReAdaptiveTable
+        :data="roleList"
+        :loading="loading"
+        :show-pagination="true"
+        :pagination-config="paginationConfig"
+        :container-selector="'.role-container'"
+        border
+        stripe
+        @pagination:size-change="handleSizeChange"
+        @pagination:current-change="handleCurrentChange">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="roleName" label="角色名称" />
         <el-table-column prop="roleCode" label="角色编码" />
         <el-table-column prop="description" label="描述" />
         <el-table-column label="权限配置" width="200">
           <template #default="{ row }">
-            <el-button
-              type="primary"
-              link
-              :icon="SettingIcon"
-              @click="handlePermissionConfig(row)"
-            >
+            <el-button type="primary" link :icon="SettingIcon" @click="handlePermissionConfig(row)">
               配置权限
             </el-button>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200">
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button
-              type="primary"
-              link
-              :icon="EditIcon"
-              @click="handleEdit(row)"
-            >
-              编辑
-            </el-button>
-            <el-button
-              type="danger"
-              link
-              :icon="DeleteIcon"
-              @click="handleDelete(row)"
-            >
-              删除
-            </el-button>
+            <el-button type="primary" link :icon="EditIcon" @click="handleEdit(row)"> 编辑 </el-button>
+            <el-button type="danger" link :icon="DeleteIcon" @click="handleDelete(row)"> 删除 </el-button>
           </template>
         </el-table-column>
-      </el-table>
+      </ReAdaptiveTable>
     </div>
 
     <!-- 角色编辑弹窗 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="dialogTitle"
-      width="500px"
-      @close="handleDialogClose"
-    >
-      <el-form
-        ref="roleFormRef"
-        :model="currentRole"
-        :rules="roleRules"
-        label-width="100px"
-      >
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="500px" @close="handleDialogClose">
+      <el-form ref="roleFormRef" :model="currentRole" :rules="roleRules" label-width="100px">
         <el-form-item label="角色名称" prop="roleName">
-          <el-input
-            v-model="currentRole.roleName"
-            placeholder="请输入角色名称"
-          />
+          <el-input v-model="currentRole.roleName" placeholder="请输入角色名称" />
         </el-form-item>
         <el-form-item label="角色编码" prop="roleCode">
-          <el-input
-            v-model="currentRole.roleCode"
-            placeholder="请输入角色编码"
-          />
+          <el-input v-model="currentRole.roleCode" placeholder="请输入角色编码" />
         </el-form-item>
         <el-form-item label="描述" prop="description">
-          <el-input
-            v-model="currentRole.description"
-            type="textarea"
-            placeholder="请输入描述"
-          />
+          <el-input v-model="currentRole.description" type="textarea" placeholder="请输入描述" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -91,36 +75,22 @@
     </el-dialog>
 
     <!-- 权限配置弹窗 -->
-    <el-dialog
-      v-model="permissionDialogVisible"
-      title="权限配置"
-      width="600px"
-      @close="handlePermissionDialogClose"
-    >
+    <el-dialog v-model="permissionDialogVisible" title="权限配置" width="600px" @close="handlePermissionDialogClose">
       <div class="permission-tree">
-        <el-alert
-          title="提示：父级菜单权限会自动包含子级权限"
-          type="info"
-          show-icon
-          class="mb-3"
-        />
         <el-tree
           ref="permissionTreeRef"
           :data="routePermissions"
-          show-checkbox
-          node-key="path"
           :props="defaultProps"
-          :default-checked-keys="selectedPermissions"
+          node-key="path"
+          show-checkbox
           :default-expanded-keys="expandedKeys"
-          check-strictly
-        />
+          :default-checked-keys="selectedPermissions"
+          :check-strictly="false" />
       </div>
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="permissionDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleSavePermissions"
-            >保存</el-button
-          >
+          <el-button type="primary" @click="handleSavePermissions">确定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -128,27 +98,59 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from "vue";
+import { ref, reactive, onMounted, computed, nextTick } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import ReAdaptiveTable from "@/components/ReAdaptiveTable/index.vue";
 import { storageLocal } from "@pureadmin/utils";
-import { ascending } from "@/router/utils";
 import { usePermissionStoreHook } from "@/store/modules/permission";
 
 // 图标引入
 const AddIcon = useRenderIcon("ep:plus");
 const EditIcon = useRenderIcon("ep:edit");
 const DeleteIcon = useRenderIcon("ep:delete");
+const SearchIcon = useRenderIcon("ep:search");
+const RefreshIcon = useRenderIcon("ep:refresh");
 const SettingIcon = useRenderIcon("ep:setting");
 
-// 表单引用
-const roleFormRef = ref();
-const permissionTreeRef = ref();
+defineOptions({
+  name: "systemRole"
+});
 
-// 角色列表
+// 搜索表单数据
+const searchForm = reactive({
+  roleName: "",
+  roleCode: ""
+});
+
+// 表格数据
 const roleList = ref([]);
+const loading = ref(false);
 
-// 当前编辑的角色
+// 分页数据
+const pagination = reactive({
+  currentPage: 1,
+  pageSize: 10,
+  total: 0
+});
+
+// 计算分页配置
+const paginationConfig = computed(() => ({
+  currentPage: pagination.currentPage,
+  pageSize: pagination.pageSize,
+  pageSizes: [10, 20, 50, 100],
+  total: pagination.total,
+  layout: "total, sizes, prev, pager, next, jumper",
+  background: true
+}));
+
+// 弹窗相关
+const dialogVisible = ref(false);
+const permissionDialogVisible = ref(false);
+const isEdit = ref(false);
+const dialogTitle = computed(() => (isEdit.value ? "编辑角色" : "新增角色"));
+
+// 当前角色数据
 const currentRole = reactive({
   id: "",
   roleName: "",
@@ -156,24 +158,18 @@ const currentRole = reactive({
   description: ""
 });
 
-// 弹窗控制
-const dialogVisible = ref(false);
-const permissionDialogVisible = ref(false);
-const isEdit = ref(false);
-
-// 当前配置权限的角色
+// 当前权限配置角色
 const currentPermissionRole = ref(null);
+
+// 表单引用
+const roleFormRef = ref();
+const permissionTreeRef = ref();
 
 // 表单验证规则
 const roleRules = {
   roleName: [{ required: true, message: "请输入角色名称", trigger: "blur" }],
   roleCode: [{ required: true, message: "请输入角色编码", trigger: "blur" }]
 };
-
-// 弹窗标题
-const dialogTitle = computed(() => {
-  return isEdit.value ? "编辑角色" : "新增角色";
-});
 
 // 获取路由权限数据
 const getRoutePermissions = () => {
@@ -184,9 +180,7 @@ const getRoutePermissions = () => {
   // 构建权限树
   const buildPermissionTree = (routes, parentPath = "") => {
     return routes.map(route => {
-      const currentPath = route.path.startsWith("/")
-        ? route.path
-        : `${parentPath}/${route.path}`;
+      const currentPath = route.path.startsWith("/") ? route.path : `${parentPath}/${route.path}`;
 
       const node = {
         path: currentPath,
@@ -218,10 +212,48 @@ const defaultProps = {
 const selectedPermissions = ref([]);
 const expandedKeys = ref([]);
 
-// 获取角色列表
+// 获取角色列表（带分页）
 const getRoleList = () => {
-  const roles = storageLocal().getItem("system_roles") || [];
-  roleList.value = roles;
+  loading.value = true;
+  try {
+    const roles = storageLocal().getItem("system_roles") || [];
+
+    // 模拟搜索过滤
+    let filteredRoles = roles;
+    if (searchForm.roleName) {
+      filteredRoles = filteredRoles.filter(role => role.roleName.includes(searchForm.roleName));
+    }
+    if (searchForm.roleCode) {
+      filteredRoles = filteredRoles.filter(role => role.roleCode.includes(searchForm.roleCode));
+    }
+
+    // 模拟分页
+    const start = (pagination.currentPage - 1) * pagination.pageSize;
+    const end = start + pagination.pageSize;
+
+    roleList.value = filteredRoles.slice(start, end);
+    pagination.total = filteredRoles.length;
+  } catch (error) {
+    roleList.value = [];
+    pagination.total = 0;
+    ElMessage.error("获取角色列表失败");
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 搜索
+const handleSearch = () => {
+  pagination.currentPage = 1;
+  getRoleList();
+};
+
+// 重置搜索
+const handleReset = () => {
+  searchForm.roleName = "";
+  searchForm.roleCode = "";
+  pagination.currentPage = 1;
+  getRoleList();
 };
 
 // 新增角色
@@ -234,6 +266,9 @@ const handleAdd = () => {
     description: ""
   });
   dialogVisible.value = true;
+  nextTick(() => {
+    roleFormRef.value?.clearValidate();
+  });
 };
 
 // 编辑角色
@@ -241,6 +276,9 @@ const handleEdit = row => {
   isEdit.value = true;
   Object.assign(currentRole, row);
   dialogVisible.value = true;
+  nextTick(() => {
+    roleFormRef.value?.clearValidate();
+  });
 };
 
 // 删除角色
@@ -295,7 +333,7 @@ const handleSave = () => {
 
 // 弹窗关闭
 const handleDialogClose = () => {
-  roleFormRef.value.resetFields();
+  roleFormRef.value?.resetFields();
 };
 
 // 权限配置
@@ -303,8 +341,7 @@ const handlePermissionConfig = row => {
   currentPermissionRole.value = row;
 
   // 获取该角色已配置的权限
-  const rolePermissions =
-    storageLocal().getItem(`role_permissions_${row.id}`) || [];
+  const rolePermissions = storageLocal().getItem(`role_permissions_${row.id}`) || [];
   selectedPermissions.value = rolePermissions;
 
   permissionDialogVisible.value = true;
@@ -316,10 +353,7 @@ const handleSavePermissions = () => {
 
   const checkedKeys = permissionTreeRef.value.getCheckedKeys();
 
-  storageLocal().setItem(
-    `role_permissions_${currentPermissionRole.value.id}`,
-    checkedKeys
-  );
+  storageLocal().setItem(`role_permissions_${currentPermissionRole.value.id}`, checkedKeys);
 
   ElMessage.success("权限配置保存成功");
   permissionDialogVisible.value = false;
@@ -329,6 +363,19 @@ const handleSavePermissions = () => {
 const handlePermissionDialogClose = () => {
   currentPermissionRole.value = null;
   selectedPermissions.value = [];
+};
+
+// 分页大小改变
+const handleSizeChange = val => {
+  pagination.pageSize = val;
+  pagination.currentPage = 1;
+  getRoleList();
+};
+
+// 当前页改变
+const handleCurrentChange = val => {
+  pagination.currentPage = val;
+  getRoleList();
 };
 
 // 组件挂载时获取数据
@@ -374,7 +421,12 @@ onMounted(() => {
 
 <style scoped>
 .role-container {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 130px);
   padding: 20px;
+  overflow: hidden;
   background-color: #fff;
 }
 
@@ -382,8 +434,17 @@ onMounted(() => {
   margin-bottom: 1rem;
 }
 
-.mb-3 {
-  margin-bottom: 1rem;
+.table-area {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.adaptive-table-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .dialog-footer {
