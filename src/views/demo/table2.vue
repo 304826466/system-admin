@@ -16,7 +16,9 @@
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :icon="SearchIcon" @click="handleSearch"> 搜索 </el-button>
+          <el-button type="primary" :icon="SearchIcon" @click="handleSearch">
+            搜索
+          </el-button>
           <el-button :icon="RefreshIcon" @click="handleReset"> 重置 </el-button>
         </el-form-item>
       </el-form>
@@ -24,18 +26,10 @@
 
     <!-- 自适应表格区域（包含分页） -->
     <div class="table-area">
-      <ReAdaptiveTable
-        :data="tableData"
-        :loading="loading"
-        :show-pagination="true"
-        :pagination-config="paginationConfig"
-        :container-selector="'.demo-container'"
-        border
-        stripe
-        @selection-change="handleSelectionChange"
-        @pagination:size-change="handleSizeChange"
-        @pagination:current-change="handleCurrentChange"
-        @refresh="handleRefresh">
+      <ReAdaptiveTable :data="tableData" :loading="loading" :show-pagination="true"
+        :pagination-config="paginationConfig" :container-selector="'.demo-container'" border stripe
+        @selection-change="handleSelectionChange" @pagination:size-change="handleSizeChange"
+        @pagination:current-change="handleCurrentChange" @refresh="handleRefresh">
         <el-table-column type="selection" width="55" />
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="name" label="姓名" />
@@ -50,8 +44,12 @@
         <el-table-column prop="createTime" label="创建时间" />
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link :icon="EditIcon" @click="handleEdit(row)"> 编辑 </el-button>
-            <el-button type="danger" link :icon="DeleteIcon" @click="handleDelete(row)"> 删除 </el-button>
+            <el-button type="primary" link :icon="EditIcon" @click="handleEdit(row)">
+              编辑
+            </el-button>
+            <el-button type="danger" link :icon="DeleteIcon" @click="handleDelete(row)">
+              删除
+            </el-button>
           </template>
         </el-table-column>
       </ReAdaptiveTable>
@@ -188,9 +186,13 @@ const handleBatchDelete = () => {
     return;
   }
 
-  ElMessageBox.confirm(`确认删除选中的 ${selectedRows.value.length} 条数据吗？`, "提示", {
-    type: "warning"
-  })
+  ElMessageBox.confirm(
+    `确认删除选中的 ${selectedRows.value.length} 条数据吗？`,
+    "提示",
+    {
+      type: "warning"
+    }
+  )
     .then(() => {
       // 实际项目中这里调用批量删除接口
       ElMessage.success("批量删除成功");
@@ -240,8 +242,8 @@ onMounted(() => {
   height: calc(100vh - 130px);
   padding: 20px;
   overflow: hidden;
-  background-color: #fff;
-
+  background: var(--el-bg-color) !important;
+  /* 使用 Element Plus 主题背景色 */
   /* 防止出现外部滚动条 */
 }
 
