@@ -1,10 +1,10 @@
-<!-- views/demo/enhanced-table.vue -->
+<!-- views/demo/table2.vue -->
 <template>
   <div class="demo-container">
     <p>增强版表格组件，集成了搜索、分页、工具栏等功能。</p>
 
     <ReAdaptiveTable ref="tableRef" :data="tableData" :loading="loading" :show-pagination="true"
-      :pagination-config="pagination" :container-selector="'.demo-container'" border stripe
+      :pagination-config="paginationConfig" :container-selector="'.demo-container'" border stripe
       @pagination:size-change="handleSizeChange" @pagination:current-change="handleCurrentChange"
       @refresh="handleRefresh" @search="handleSearch" @reset="handleReset" @selection-change="handleSelectionChange">
       <!-- 搜索区域 -->
@@ -20,10 +20,10 @@
             </el-select>
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" :icon="SearchIcon" @click="handleSearchBtn">
+            <el-button type="primary" :icon="SearchIcon" @click="handleSearch">
               搜索
             </el-button>
-            <el-button :icon="RefreshIcon" @click="handleResetBtn">
+            <el-button :icon="RefreshIcon" @click="handleReset">
               重置
             </el-button>
           </el-form-item>
@@ -73,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, computed } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import DemoDrawer from "./components/DemoDrawer.vue";
@@ -111,6 +111,16 @@ const pagination = reactive({
   total: 0
 });
 
+// 计算分页配置
+const paginationConfig = computed(() => ({
+  currentPage: pagination.currentPage,
+  pageSize: pagination.pageSize,
+  pageSizes: [10, 20, 50, 100],
+  total: pagination.total,
+  layout: "total, sizes, prev, pager, next, jumper",
+  background: true
+}));
+
 // 加载状态
 const loading = ref(false);
 
@@ -144,22 +154,12 @@ const handleSearch = () => {
   fetchData();
 };
 
-// 搜索按钮点击
-const handleSearchBtn = () => {
-  tableRef.value.search();
-};
-
 // 重置搜索
 const handleReset = () => {
   searchForm.name = "";
   searchForm.status = "";
   pagination.currentPage = 1;
   fetchData();
-};
-
-// 重置按钮点击
-const handleResetBtn = () => {
-  tableRef.value.reset();
 };
 
 // 处理选择变化

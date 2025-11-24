@@ -11,7 +11,7 @@
       <slot name="toolbar" />
     </div>
 
-    <el-table v-bind="$attrs" :data="data" :max-height="tableMaxHeight" :loading="loading" class="adaptive-table"
+    <el-table v-bind="$attrs" :data="data" :height="computedTableHeight" :loading="loading" class="adaptive-table"
       v-on="filteredListeners">
       <slot />
 
@@ -33,15 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  ref,
-  onMounted,
-  onUnmounted,
-  computed,
-  useAttrs,
-  watch,
-  nextTick
-} from "vue";
+import { ref, onMounted, onUnmounted, computed, useAttrs, nextTick } from "vue";
 
 // 定义分页配置接口
 interface PaginationConfig {
@@ -136,8 +128,10 @@ const mergedPaginationConfig = computed(() => {
 // 表格容器引用
 const tableContainerRef = ref<HTMLElement | null>(null);
 
-// 表格最大高度
-const tableMaxHeight = ref(0);
+// 是否已经计算过高度
+const hasCalculatedHeight = ref(false);
+// 计算后的固定表格高度
+const computedTableHeight = ref(0);
 
 // 计算表格容器到顶部的距离
 const containerTop = computed(() => {
@@ -192,19 +186,26 @@ const calculateExcludedHeight = () => {
   return excludedHeight;
 };
 
-// 计算表格最大高度
-const calculateMaxHeight = () => {
-  // 如果设置了固定高度，直接使用
+// 计算表格高度 - 只计算一次
+const calculateFixedHeight = () => {
+  // 如果已经计算过高度，则不再计算
+  if (hasCalculatedHeight.value) {
+    return;
+  }
+
+  // 如果设置了固定高度属性，直接使用
   if (props.fixedHeight > 0) {
-    tableMaxHeight.value = props.fixedHeight;
-    emit("update:height", tableMaxHeight.value);
+    computedTableHeight.value = props.fixedHeight;
+    hasCalculatedHeight.value = true;
+    emit("update:height", computedTableHeight.value);
     return;
   }
 
   // 如果不启用自动高度计算，直接返回
   if (!props.autoHeight) {
-    tableMaxHeight.value = 0; // 0 表示不限制高度
-    emit("update:height", tableMaxHeight.value);
+    computedTableHeight.value = 0; // 0 表示不限制高度
+    hasCalculatedHeight.value = true;
+    emit("update:height", computedTableHeight.value);
     return;
   }
 
@@ -214,13 +215,10 @@ const calculateMaxHeight = () => {
   // 计算需要排除的高度
   const excludedHeight = calculateExcludedHeight();
 
-  // 计算分页组件高度（如果有分页且有数据）
-  let paginationHeight = 0;
-  if (props.showPagination && props.data.length > 0) {
-    paginationHeight = 40; // 估算分页组件高度
-  }
+  // 固定分页组件高度
+  const paginationHeight = 60; // 固定分页组件高度
 
-  // 计算表格最大高度：窗口高度 - 容器到顶部的距离 - 排除的高度 - 分页高度 - 偏移量
+  // 计算表格最大高度：窗口高度 - 容器到顶部的距离 - 排除的高度 - 固定分页高度 - 偏移量
   const maxHeight =
     windowHeight -
     containerTop.value -
@@ -229,10 +227,11 @@ const calculateMaxHeight = () => {
     props.offset;
 
   // 确保最小高度不少于200px
-  tableMaxHeight.value = Math.max(maxHeight, 200);
+  computedTableHeight.value = Math.max(maxHeight, 200);
+  hasCalculatedHeight.value = true;
 
   // 发出高度更新事件
-  emit("update:height", tableMaxHeight.value);
+  emit("update:height", computedTableHeight.value);
 };
 
 // 处理分页大小变化
@@ -245,8 +244,12 @@ const handleCurrentChange = (val: number) => {
   emit("pagination:current-change", val);
 };
 
-// 刷新方法
+// 刷新方法 - 允许重新计算高度
 const refresh = () => {
+  hasCalculatedHeight.value = false;
+  nextTick(() => {
+    calculateFixedHeight();
+  });
   emit("refresh");
 };
 
@@ -262,8 +265,9 @@ const reset = () => {
 
 // 处理窗口大小变化
 const handleResize = () => {
+  hasCalculatedHeight.value = false;
   nextTick(() => {
-    calculateMaxHeight();
+    calculateFixedHeight();
   });
 };
 
@@ -272,87 +276,38 @@ let ticking = false;
 const handleScroll = () => {
   if (!ticking) {
     requestAnimationFrame(() => {
-      calculateMaxHeight();
+      hasCalculatedHeight.value = false;
+      calculateFixedHeight();
       ticking = false;
     });
     ticking = true;
   }
 };
 
-// 监听分页配置变化
-watch(
-  () => [props.paginationConfig, props.data.length],
-  () => {
-    nextTick(() => {
-      calculateMaxHeight();
-    });
-  },
-  { deep: true }
-);
-
-// 监听 loading 状态变化
-watch(
-  () => props.loading,
-  () => {
-    if (!props.loading) {
-      nextTick(() => {
-        calculateMaxHeight();
-      });
-    }
-  }
-);
-
 // 创建 ResizeObserver 监听搜索区域高度变化
 let resizeObserver: ResizeObserver | null = null;
 
 // 组件挂载时
 onMounted(() => {
-  nextTick(() => {
-    calculateMaxHeight();
-  });
+  // 延迟执行确保DOM完全渲染
+  setTimeout(() => {
+    calculateFixedHeight();
+  }, 100);
 
   // 添加事件监听器
   window.addEventListener("resize", handleResize);
-  window.addEventListener("scroll", handleScroll, true);
-
-  // 创建 ResizeObserver 监听容器大小变化
-  if (tableContainerRef.value && tableContainerRef.value.parentElement) {
-    resizeObserver = new ResizeObserver(() => {
-      nextTick(() => {
-        calculateMaxHeight();
-      });
-    });
-
-    // 观察父容器的变化
-    resizeObserver.observe(tableContainerRef.value.parentElement);
-
-    // 观察所有兄弟元素的变化
-    const siblings = Array.from(tableContainerRef.value.parentElement.children);
-    siblings.forEach(sibling => {
-      if (sibling !== tableContainerRef.value) {
-        resizeObserver?.observe(sibling);
-      }
-    });
-  }
 });
 
 // 组件卸载时
 onUnmounted(() => {
   // 移除事件监听器
   window.removeEventListener("resize", handleResize);
-  window.removeEventListener("scroll", handleScroll, true);
-
-  // 断开 ResizeObserver
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-    resizeObserver = null;
-  }
 });
 
 // 暴露方法给父组件
 defineExpose({
-  refreshHeight: calculateMaxHeight,
-  calculateMaxHeight,
+  refreshHeight: calculateFixedHeight,
+  calculateMaxHeight: calculateFixedHeight,
   refresh,
   search,
   reset
@@ -372,9 +327,13 @@ defineExpose({
   width: 100%;
 }
 
+/* 分页容器 - 始终占据固定空间 */
 .adaptive-table-pagination {
+  min-height: 60px;
+  /* 固定分页高度 */
   display: flex;
-  padding: 20px 0;
+  align-items: center;
+  padding: 10px 0;
 }
 
 .table-search-area,
