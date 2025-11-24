@@ -36,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, useAttrs, nextTick } from "vue";
+import { ref, onMounted, onUnmounted, computed, useAttrs, nextTick } from 'vue';
 
 // 定义分页配置接口
 interface PaginationConfig {
@@ -57,7 +57,7 @@ interface Props {
   offset?: number; // 距离底部的偏移量，默认80px
   showPagination?: boolean; // 是否显示分页
   paginationConfig?: PaginationConfig; // 分页配置
-  paginationAlign?: "flex-start" | "center" | "flex-end"; // 分页对齐方式
+  paginationAlign?: 'flex-start' | 'center' | 'flex-end'; // 分页对齐方式
   containerSelector?: string; // 容器选择器，用于计算高度
   autoHeight?: boolean; // 是否自动计算高度
   loading?: boolean; // 加载状态
@@ -69,8 +69,8 @@ const props = withDefaults(defineProps<Props>(), {
   data: () => [],
   offset: 80,
   showPagination: false,
-  paginationAlign: "flex-end",
-  containerSelector: "",
+  paginationAlign: 'flex-end',
+  containerSelector: '',
   autoHeight: true,
   loading: false,
   fixedHeight: 0,
@@ -79,15 +79,15 @@ const props = withDefaults(defineProps<Props>(), {
 
 // 定义 emits
 const emit = defineEmits<{
-  (e: "update:height", height: number): void;
-  (e: "pagination:size-change", val: number): void;
-  (e: "pagination:current-change", val: number): void;
-  (e: "refresh"): void;
-  (e: "search"): void;
-  (e: "reset"): void;
-  (e: "edit", row: any): void;
-  (e: "delete", row: any): void;
-  (e: "selection-change", rows: any[]): void;
+  (e: 'update:height', height: number): void;
+  (e: 'pagination:size-change', val: number): void;
+  (e: 'pagination:current-change', val: number): void;
+  (e: 'refresh'): void;
+  (e: 'search'): void;
+  (e: 'reset'): void;
+  (e: 'edit', row: any): void;
+  (e: 'delete', row: any): void;
+  (e: 'selection-change', rows: any[]): void;
 }>();
 
 // 获取所有 attrs
@@ -97,7 +97,7 @@ const attrs = useAttrs();
 const filteredListeners = computed(() => {
   const listeners: Record<string, any> = {};
   Object.keys(attrs).forEach(key => {
-    if (key.startsWith("on") && typeof attrs[key] === "function") {
+    if (key.startsWith('on') && typeof attrs[key] === 'function') {
       // 将 onXxx 转换为 xxx 事件名
       const event = key.charAt(2).toLowerCase() + key.slice(3);
       listeners[event] = attrs[key];
@@ -105,8 +105,8 @@ const filteredListeners = computed(() => {
   });
 
   // 添加 selection-change 事件处理
-  listeners["selection-change"] = (rows: any[]) => {
-    emit("selection-change", rows);
+  listeners['selection-change'] = (rows: any[]) => {
+    emit('selection-change', rows);
   };
 
   return listeners;
@@ -118,7 +118,7 @@ const defaultPaginationConfig = {
   pageSize: 10,
   pageSizes: [10, 20, 50, 100],
   total: 0,
-  layout: "total, sizes, prev, pager, next, jumper",
+  layout: 'total, sizes, prev, pager, next, jumper',
   background: true
 };
 
@@ -142,12 +142,10 @@ const computedTableHeight = ref(0);
 const wrapperHeight = computed(() => {
   if (props.fixedHeight > 0) {
     const paginationHeight =
-      props.showPagination && props.data.length > 0
-        ? props.paginationHeight
-        : 0;
+      props.showPagination && props.data.length > 0 ? props.paginationHeight : 0;
     return `${props.fixedHeight - paginationHeight}px`;
   }
-  return "auto";
+  return 'auto';
 });
 
 // 计算表格容器到顶部的距离
@@ -214,7 +212,7 @@ const calculateFixedHeight = () => {
   if (props.fixedHeight > 0) {
     computedTableHeight.value = props.fixedHeight;
     hasCalculatedHeight.value = true;
-    emit("update:height", computedTableHeight.value);
+    emit('update:height', computedTableHeight.value);
     return;
   }
 
@@ -222,7 +220,7 @@ const calculateFixedHeight = () => {
   if (!props.autoHeight) {
     computedTableHeight.value = 0; // 0 表示不限制高度
     hasCalculatedHeight.value = true;
-    emit("update:height", computedTableHeight.value);
+    emit('update:height', computedTableHeight.value);
     return;
   }
 
@@ -237,28 +235,24 @@ const calculateFixedHeight = () => {
 
   // 计算表格最大高度：窗口高度 - 容器到顶部的距离 - 排除的高度 - 固定分页高度 - 偏移量
   const maxHeight =
-    windowHeight -
-    containerTop.value -
-    excludedHeight -
-    paginationHeight -
-    props.offset;
+    windowHeight - containerTop.value - excludedHeight - paginationHeight - props.offset;
 
   // 确保最小高度不少于200px
   computedTableHeight.value = Math.max(maxHeight, 200);
   hasCalculatedHeight.value = true;
-  console.log("高度" + computedTableHeight.value);
+  console.log('高度' + computedTableHeight.value);
   // 发出高度更新事件
-  emit("update:height", computedTableHeight.value);
+  emit('update:height', computedTableHeight.value);
 };
 
 // 处理分页大小变化
 const handleSizeChange = (val: number) => {
-  emit("pagination:size-change", val);
+  emit('pagination:size-change', val);
 };
 
 // 处理当前页变化
 const handleCurrentChange = (val: number) => {
-  emit("pagination:current-change", val);
+  emit('pagination:current-change', val);
 };
 
 // 刷新方法 - 允许重新计算高度
@@ -267,17 +261,17 @@ const refresh = () => {
   nextTick(() => {
     calculateFixedHeight();
   });
-  emit("refresh");
+  emit('refresh');
 };
 
 // 搜索方法
 const search = () => {
-  emit("search");
+  emit('search');
 };
 
 // 重置方法
 const reset = () => {
-  emit("reset");
+  emit('reset');
 };
 
 // 处理窗口大小变化
@@ -312,13 +306,13 @@ onMounted(() => {
   }, 100);
 
   // 添加事件监听器
-  window.addEventListener("resize", handleResize);
+  window.addEventListener('resize', handleResize);
 });
 
 // 组件卸载时
 onUnmounted(() => {
   // 移除事件监听器
-  window.removeEventListener("resize", handleResize);
+  window.removeEventListener('resize', handleResize);
 });
 
 // 暴露方法给父组件
