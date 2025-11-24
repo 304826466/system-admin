@@ -11,17 +11,20 @@
       <slot name="toolbar" />
     </div>
 
-    <el-table v-bind="$attrs" :data="data" :height="computedTableHeight" :loading="loading" class="adaptive-table"
-      v-on="filteredListeners">
-      <slot />
+    <!-- 表格容器 -->
+    <div class="table-wrapper" :style="{ height: wrapperHeight }">
+      <el-table v-bind="$attrs" :data="data" :height="computedTableHeight" :loading="loading" class="adaptive-table"
+        v-on="filteredListeners">
+        <slot />
 
-      <!-- 空状态插槽 -->
-      <template #empty>
-        <slot name="empty">
-          <el-empty description="暂无数据" />
-        </slot>
-      </template>
-    </el-table>
+        <!-- 空状态插槽 -->
+        <template #empty>
+          <slot name="empty">
+            <el-empty description="暂无数据" />
+          </slot>
+        </template>
+      </el-table>
+    </div>
 
     <!-- 分页组件 -->
     <div v-if="showPagination && data.length > 0" class="adaptive-table-pagination"
@@ -59,6 +62,7 @@ interface Props {
   autoHeight?: boolean; // 是否自动计算高度
   loading?: boolean; // 加载状态
   fixedHeight?: number; // 固定高度，优先级最高
+  paginationHeight?: number; // 分页高度配置
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -69,7 +73,8 @@ const props = withDefaults(defineProps<Props>(), {
   containerSelector: "",
   autoHeight: true,
   loading: false,
-  fixedHeight: 0
+  fixedHeight: 0,
+  paginationHeight: 60
 });
 
 // 定义 emits
@@ -132,6 +137,18 @@ const tableContainerRef = ref<HTMLElement | null>(null);
 const hasCalculatedHeight = ref(false);
 // 计算后的固定表格高度
 const computedTableHeight = ref(0);
+
+// 计算包装器高度
+const wrapperHeight = computed(() => {
+  if (props.fixedHeight > 0) {
+    const paginationHeight =
+      props.showPagination && props.data.length > 0
+        ? props.paginationHeight
+        : 0;
+    return `${props.fixedHeight - paginationHeight}px`;
+  }
+  return "auto";
+});
 
 // 计算表格容器到顶部的距离
 const containerTop = computed(() => {
@@ -216,7 +233,7 @@ const calculateFixedHeight = () => {
   const excludedHeight = calculateExcludedHeight();
 
   // 固定分页组件高度
-  const paginationHeight = 60; // 固定分页组件高度
+  const paginationHeight = props.paginationHeight; // 固定分页组件高度
 
   // 计算表格最大高度：窗口高度 - 容器到顶部的距离 - 排除的高度 - 固定分页高度 - 偏移量
   const maxHeight =
@@ -229,7 +246,7 @@ const calculateFixedHeight = () => {
   // 确保最小高度不少于200px
   computedTableHeight.value = Math.max(maxHeight, 200);
   hasCalculatedHeight.value = true;
-
+  console.log("高度" + computedTableHeight.value);
   // 发出高度更新事件
   emit("update:height", computedTableHeight.value);
 };
@@ -322,22 +339,28 @@ defineExpose({
   height: 100%;
 }
 
-.adaptive-table {
+.table-wrapper {
   flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.adaptive-table {
   width: 100%;
 }
 
 /* 分页容器 - 始终占据固定空间 */
 .adaptive-table-pagination {
-  min-height: 60px;
-  /* 固定分页高度 */
+  min-height: v-bind('props.paginationHeight + "px"');
   display: flex;
   align-items: center;
   padding: 10px 0;
+  flex-shrink: 0;
 }
 
 .table-search-area,
 .table-toolbar {
   margin-bottom: 1rem;
+  flex-shrink: 0;
 }
 </style>
