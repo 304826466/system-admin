@@ -354,7 +354,6 @@ defineExpose({
 
 .table-search-area,
 .table-toolbar {
-  margin-bottom: 1rem;
   flex-shrink: 0;
 }
 </style>

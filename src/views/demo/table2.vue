@@ -47,7 +47,9 @@
       <el-table-column prop="id" label="ID" width="80" />
       <el-table-column prop="name" label="姓名" />
       <el-table-column prop="email" label="邮箱" />
-      <el-table-column prop="status" label="状态">
+      <el-table-column prop="status" label="状态"
+        :filters="[{ text: '启用', value: 'enabled' }, { text: '禁用', value: 'disabled' }]"
+        :filter-method="filterStatusHandler">
         <template #default="{ row }">
           <el-tag :type="row.status === 'enabled' ? 'success' : 'danger'">
             {{ row.status === "enabled" ? "启用" : "禁用" }}
@@ -87,7 +89,7 @@ const SearchIcon = useRenderIcon("ep:search");
 const RefreshIcon = useRenderIcon("ep:refresh");
 
 defineOptions({
-  name: "demotable"
+  name: "demotable2"
 });
 
 // 组件引用
@@ -123,6 +125,11 @@ const paginationConfig = computed(() => ({
 
 // 加载状态
 const loading = ref(false);
+
+// 状态筛选处理器
+const filterStatusHandler = (value: string, row: any) => {
+  return row.status === value;
+};
 
 // 获取表格数据（模拟）
 const fetchData = () => {
