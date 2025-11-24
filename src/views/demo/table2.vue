@@ -1,59 +1,71 @@
-<!-- views/demo/table2.vue -->
+<!-- views/demo/enhanced-table.vue -->
 <template>
   <div class="demo-container">
-    <p>封装统一表格组件，统一计算高度，并抽离分页组件。</p>
+    <p>增强版表格组件，集成了搜索、分页、工具栏等功能。</p>
 
-    <!-- 搜索区域 -->
-    <div class="search-area mb-4">
-      <el-form :model="searchForm" label-width="80px" inline>
-        <el-form-item label="姓名">
-          <el-input v-model="searchForm.name" placeholder="请输入姓名" />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" style="width: 140px" clearable>
-            <el-option label="启用" value="enabled" />
-            <el-option label="禁用" value="disabled" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :icon="SearchIcon" @click="handleSearch">
-            搜索
+    <ReAdaptiveTable ref="tableRef" :data="tableData" :loading="loading" :show-pagination="true"
+      :pagination-config="pagination" :container-selector="'.demo-container'" border stripe
+      @pagination:size-change="handleSizeChange" @pagination:current-change="handleCurrentChange"
+      @refresh="handleRefresh" @search="handleSearch" @reset="handleReset" @selection-change="handleSelectionChange">
+      <!-- 搜索区域 -->
+      <template #search>
+        <el-form :model="searchForm" label-width="80px" inline>
+          <el-form-item label="姓名">
+            <el-input v-model="searchForm.name" placeholder="请输入姓名" />
+          </el-form-item>
+          <el-form-item label="状态">
+            <el-select v-model="searchForm.status" placeholder="请选择状态" style="width: 140px" clearable>
+              <el-option label="启用" value="enabled" />
+              <el-option label="禁用" value="disabled" />
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" :icon="SearchIcon" @click="handleSearchBtn">
+              搜索
+            </el-button>
+            <el-button :icon="RefreshIcon" @click="handleResetBtn">
+              重置
+            </el-button>
+          </el-form-item>
+        </el-form>
+      </template>
+
+      <!-- 工具栏 -->
+      <template #toolbar>
+        <div class="toolbar">
+          <el-button type="primary" :icon="PlusIcon" @click="handleAdd">
+            新增
           </el-button>
-          <el-button :icon="RefreshIcon" @click="handleReset"> 重置 </el-button>
-        </el-form-item>
-      </el-form>
-    </div>
+          <el-button type="danger" :icon="DeleteIcon" :disabled="selectedRows.length === 0" @click="handleBatchDelete">
+            批量删除
+          </el-button>
+        </div>
+      </template>
 
-    <!-- 自适应表格区域（包含分页） -->
-    <div class="table-area">
-      <ReAdaptiveTable :data="tableData" :loading="loading" :show-pagination="true"
-        :pagination-config="paginationConfig" :container-selector="'.demo-container'" border stripe
-        @selection-change="handleSelectionChange" @pagination:size-change="handleSizeChange"
-        @pagination:current-change="handleCurrentChange" @refresh="handleRefresh">
-        <el-table-column type="selection" width="55" />
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="name" label="姓名" />
-        <el-table-column prop="email" label="邮箱" />
-        <el-table-column prop="status" label="状态">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 'enabled' ? 'success' : 'danger'">
-              {{ row.status === "enabled" ? "启用" : "禁用" }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" />
-        <el-table-column label="操作" width="200" fixed="right">
-          <template #default="{ row }">
-            <el-button type="primary" link :icon="EditIcon" @click="handleEdit(row)">
-              编辑
-            </el-button>
-            <el-button type="danger" link :icon="DeleteIcon" @click="handleDelete(row)">
-              删除
-            </el-button>
-          </template>
-        </el-table-column>
-      </ReAdaptiveTable>
-    </div>
+      <!-- 表格列定义 -->
+      <el-table-column type="selection" width="55" />
+      <el-table-column prop="id" label="ID" width="80" />
+      <el-table-column prop="name" label="姓名" />
+      <el-table-column prop="email" label="邮箱" />
+      <el-table-column prop="status" label="状态">
+        <template #default="{ row }">
+          <el-tag :type="row.status === 'enabled' ? 'success' : 'danger'">
+            {{ row.status === "enabled" ? "启用" : "禁用" }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="createTime" label="创建时间" />
+      <el-table-column label="操作" width="200" fixed="right">
+        <template #default="{ row }">
+          <el-button type="primary" link :icon="EditIcon" @click="handleEdit(row)">
+            编辑
+          </el-button>
+          <el-button type="danger" link :icon="DeleteIcon" @click="handleDelete(row)">
+            删除
+          </el-button>
+        </template>
+      </el-table-column>
+    </ReAdaptiveTable>
 
     <!-- 抽屉组件 -->
     <DemoDrawer ref="drawerRef" @submit="handleDrawerSubmit" />
@@ -61,22 +73,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import DemoDrawer from "./components/DemoDrawer.vue";
 import ReAdaptiveTable from "@/components/ReAdaptiveTable/index.vue";
 
 // 图标引入
-const AddIcon = useRenderIcon("ep:plus");
+const PlusIcon = useRenderIcon("ep:plus");
 const EditIcon = useRenderIcon("ep:edit");
 const DeleteIcon = useRenderIcon("ep:delete");
 const SearchIcon = useRenderIcon("ep:search");
 const RefreshIcon = useRenderIcon("ep:refresh");
 
 defineOptions({
-  name: "demotable2"
+  name: "demotable"
 });
+
+// 组件引用
+const tableRef = ref();
+const drawerRef = ref();
 
 // 搜索表单数据
 const searchForm = reactive({
@@ -97,19 +113,6 @@ const pagination = reactive({
 
 // 加载状态
 const loading = ref(false);
-
-// 抽屉引用
-const drawerRef = ref();
-
-// 计算分页配置
-const paginationConfig = computed(() => ({
-  currentPage: pagination.currentPage,
-  pageSize: pagination.pageSize,
-  pageSizes: [10, 20, 50, 100],
-  total: pagination.total,
-  layout: "total, sizes, prev, pager, next, jumper",
-  background: true
-}));
 
 // 获取表格数据（模拟）
 const fetchData = () => {
@@ -141,6 +144,11 @@ const handleSearch = () => {
   fetchData();
 };
 
+// 搜索按钮点击
+const handleSearchBtn = () => {
+  tableRef.value.search();
+};
+
 // 重置搜索
 const handleReset = () => {
   searchForm.name = "";
@@ -149,8 +157,13 @@ const handleReset = () => {
   fetchData();
 };
 
+// 重置按钮点击
+const handleResetBtn = () => {
+  tableRef.value.reset();
+};
+
 // 处理选择变化
-const handleSelectionChange = rows => {
+const handleSelectionChange = (rows: any[]) => {
   selectedRows.value = rows;
 };
 
@@ -160,12 +173,12 @@ const handleAdd = () => {
 };
 
 // 编辑
-const handleEdit = row => {
+const handleEdit = (row: any) => {
   drawerRef.value.open(row);
 };
 
 // 删除
-const handleDelete = row => {
+const handleDelete = (row: any) => {
   ElMessageBox.confirm("确认删除该条数据吗？", "提示", {
     type: "warning"
   })
@@ -209,14 +222,14 @@ const handleDrawerSubmit = () => {
 };
 
 // 分页大小改变
-const handleSizeChange = val => {
+const handleSizeChange = (val: number) => {
   pagination.pageSize = val;
   pagination.currentPage = 1;
   fetchData();
 };
 
 // 当前页改变
-const handleCurrentChange = val => {
+const handleCurrentChange = (val: number) => {
   pagination.currentPage = val;
   fetchData();
 };
@@ -235,33 +248,19 @@ onMounted(() => {
 <style scoped>
 .demo-container {
   box-sizing: border-box;
-
-  /* 减去顶部导航栏和其他固定元素的高度 */
   display: flex;
   flex-direction: column;
   height: calc(100vh - 130px);
   padding: 20px;
   overflow: hidden;
-  background: var(--el-bg-color) !important;
-  /* 使用 Element Plus 主题背景色 */
-  /* 防止出现外部滚动条 */
+  background: var(--el-bg-color);
 }
 
-.mb-4 {
+.toolbar {
   margin-bottom: 1rem;
 }
 
-.table-area {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* 确保表格容器正确填充空间 */
-.adaptive-table-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+.toolbar .el-button {
+  margin-right: 10px;
 }
 </style>

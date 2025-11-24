@@ -1,14 +1,18 @@
 <!-- components/ReAdaptiveTable/index.vue -->
 <template>
   <div ref="tableContainerRef" class="adaptive-table-container">
-    <el-table
-      v-bind="$attrs"
-      :data="data"
-      :max-height="tableMaxHeight"
-      :loading="loading"
-      class="adaptive-table"
-      v-on="filteredListeners"
-    >
+    <!-- 搜索区域插槽 -->
+    <div v-if="$slots.search" class="table-search-area">
+      <slot name="search" />
+    </div>
+
+    <!-- 工具栏插槽 -->
+    <div v-if="$slots.toolbar" class="table-toolbar">
+      <slot name="toolbar" />
+    </div>
+
+    <el-table v-bind="$attrs" :data="data" :max-height="tableMaxHeight" :loading="loading" class="adaptive-table"
+      v-on="filteredListeners">
       <slot />
 
       <!-- 空状态插槽 -->
@@ -20,16 +24,10 @@
     </el-table>
 
     <!-- 分页组件 -->
-    <div
-      v-if="showPagination && data.length > 0"
-      class="adaptive-table-pagination"
-      :style="{ justifyContent: paginationAlign }"
-    >
-      <el-pagination
-        v-bind="mergedPaginationConfig"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-      />
+    <div v-if="showPagination && data.length > 0" class="adaptive-table-pagination"
+      :style="{ justifyContent: paginationAlign }">
+      <el-pagination v-bind="mergedPaginationConfig" @size-change="handleSizeChange"
+        @current-change="handleCurrentChange" />
     </div>
   </div>
 </template>
@@ -45,7 +43,7 @@ import {
   nextTick
 } from "vue";
 
-// 定义 props
+// 定义分页配置接口
 interface PaginationConfig {
   currentPage?: number;
   pageSize?: number;
@@ -58,6 +56,7 @@ interface PaginationConfig {
   hideOnSinglePage?: boolean;
 }
 
+// 定义组件 props
 interface Props {
   data: any[];
   offset?: number; // 距离底部的偏移量，默认80px
@@ -87,7 +86,11 @@ const emit = defineEmits<{
   (e: "pagination:size-change", val: number): void;
   (e: "pagination:current-change", val: number): void;
   (e: "refresh"): void;
-  (e: "update:paginationConfig", config: PaginationConfig): void;
+  (e: "search"): void;
+  (e: "reset"): void;
+  (e: "edit", row: any): void;
+  (e: "delete", row: any): void;
+  (e: "selection-change", rows: any[]): void;
 }>();
 
 // 获取所有 attrs
@@ -103,6 +106,12 @@ const filteredListeners = computed(() => {
       listeners[event] = attrs[key];
     }
   });
+
+  // 添加 selection-change 事件处理
+  listeners["selection-change"] = (rows: any[]) => {
+    emit("selection-change", rows);
+  };
+
   return listeners;
 });
 
@@ -205,10 +214,10 @@ const calculateMaxHeight = () => {
   // 计算需要排除的高度
   const excludedHeight = calculateExcludedHeight();
 
-  // 计算分页组件高度
+  // 计算分页组件高度（如果有分页且有数据）
   let paginationHeight = 0;
   if (props.showPagination && props.data.length > 0) {
-    paginationHeight = 60; // 估算分页组件高度
+    paginationHeight = 40; // 估算分页组件高度
   }
 
   // 计算表格最大高度：窗口高度 - 容器到顶部的距离 - 排除的高度 - 分页高度 - 偏移量
@@ -239,6 +248,16 @@ const handleCurrentChange = (val: number) => {
 // 刷新方法
 const refresh = () => {
   emit("refresh");
+};
+
+// 搜索方法
+const search = () => {
+  emit("search");
+};
+
+// 重置方法
+const reset = () => {
+  emit("reset");
 };
 
 // 处理窗口大小变化
@@ -334,7 +353,9 @@ onUnmounted(() => {
 defineExpose({
   refreshHeight: calculateMaxHeight,
   calculateMaxHeight,
-  refresh
+  refresh,
+  search,
+  reset
 });
 </script>
 
@@ -354,5 +375,10 @@ defineExpose({
 .adaptive-table-pagination {
   display: flex;
   padding: 20px 0;
+}
+
+.table-search-area,
+.table-toolbar {
+  margin-bottom: 1rem;
 }
 </style>
