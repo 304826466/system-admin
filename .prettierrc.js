@@ -2,8 +2,15 @@
 
 /** @type {import("prettier").Config} */
 export default {
+  semi: true,
+  singleQuote: true,
+  quoteProps: "as-needed",
+  trailingComma: "none",
   bracketSpacing: true,
-  singleQuote: false,
   arrowParens: "avoid",
-  trailingComma: "none"
+  printWidth: 120,
+  tabWidth: 2,
+  useTabs: false,
+  endOfLine: "lf",
+  singleAttributePerLine: false
 };
