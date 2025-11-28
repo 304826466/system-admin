@@ -182,7 +182,7 @@ const calculateExcludedHeight = () => {
     if (sibling === tableContainerRef.value) continue;
 
     // 确保元素在DOM中并且可见
-    if (!document.contains(sibling) || sibling.offsetParent === null) {
+    if (!document.contains(sibling) || !(sibling instanceof HTMLElement) || sibling.offsetParent === null) {
       continue;
     }
 
@@ -193,7 +193,8 @@ const calculateExcludedHeight = () => {
 
     // 使用 getBoundingClientRect 获取更准确的高度
     const rect = sibling.getBoundingClientRect();
-    const height = rect.height || sibling.offsetHeight || 0;
+    // 正确处理 offsetHeight - 需要确保是 HTMLElement
+    const height = rect.height || (sibling instanceof HTMLElement ? sibling.offsetHeight : 0);
 
     excludedHeight += height + marginTop + marginBottom;
   }
